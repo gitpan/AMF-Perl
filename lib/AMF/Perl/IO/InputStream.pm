@@ -15,6 +15,9 @@ package AMF::Perl::IO::InputStream;
 
 =head1 CHANGES    
 
+=head2 Sun Sep 19 13:01:35 EDT 2004
+=item Patch from Kostas Chatzikokolakis about error checking of input data length.
+
 =head2 Tue Jun 22 19:28:30 EDT 2004
 =item Improved the check in readDouble to append "0" to the string instead of skipping
 the value. Otherwise the number 16 did not go through.
@@ -50,7 +53,7 @@ sub new
     my @array =  split //, $rd;
     $self->{raw_data} = \@array;
     # grab the total length of this stream
-    $self->{content_length} = length($self->{raw_data});
+    $self->{content_length} = @{$self->{raw_data}};
     if (unpack("h*", pack("s", 1)) =~ /01/)
     {
         $self->{byteorder} = 'big-endian';
@@ -67,6 +70,9 @@ sub new
 sub readByte
 {
     my ($self)=@_;
+	# boundary check
+	die "Malformed AMF data, cannot readByte\n"
+		if $self->{current_byte} > $self->{content_length} - 1;
     # return the next byte
 	my $nextByte = $self->{raw_data}->[$self->{current_byte}];
 	my $result;
@@ -79,8 +85,12 @@ sub readByte
 sub readInt
 {
     my ($self)=@_;
+
+	# boundary check
+	die "Malformed AMF data, cannot readInt\n"
+		if $self->{current_byte} > $self->{content_length} - 2;
+
     # read the next 2 bytes, shift and add
-    
 	my $thisByte = $self->{raw_data}->[$self->{current_byte}];
 	my $nextByte = $self->{raw_data}->[$self->{current_byte}+1];
 
@@ -97,6 +107,11 @@ sub readInt
 sub readLong
 {
     my ($self)=@_;
+ 
+	# boundary check
+	die "Malformed AMF data, cannot readLong\n"
+		if $self->{current_byte} > $self->{content_length} - 4;
+
     my $byte1 = $self->{current_byte};
     my $byte2 = $self->{current_byte}+1;
     my $byte3 = $self->{current_byte}+2;
@@ -113,6 +128,9 @@ sub readLong
 sub readDouble
 {
     my ($self)=@_;
+	# boundary check
+	die "Malformed AMF data, cannot readDouble\n"
+		if $self->{current_byte} > $self->{content_length} - 8;
     # container to store the reversed bytes
     my $invertedBytes = "";
     if ($self->{byteorder} eq 'little-endian')
@@ -150,6 +168,9 @@ sub readUTF
     my ($self) = @_;
     # get the length of the string (1st 2 bytes)
     my $length = $self->readInt();
+	# boundary check
+	die "Malformed AMF data, cannot readUTF\n"
+		if $self->{current_byte} > $self->{content_length} - $length;
     # grab the string
     my @slice = @{$self->{raw_data}}[$self->{current_byte}.. $self->{current_byte}+$length-1];
     my $val = join "", @slice;
@@ -165,6 +186,9 @@ sub readLongUTF
     my ($self) = @_;
     # get the length of the string (1st 4 bytes)
     my $length = $self->readLong();
+	# boundary check
+	die "Malformed AMF data, cannot readLongUTF\n"
+		if $self->{current_byte} > $self->{content_length} - $length;
     # grab the string
     my @slice = @{$self->{raw_data}}[$self->{current_byte} .. $self->{current_byte}+$length-1];
     my $val = join "", @slice;

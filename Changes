@@ -1,5 +1,11 @@
 Revision history for Perl extension AMF::Perl.
 
+0.15 Sun Sep 19 13:01:35 EDT 2004
+Converted examples (except for Petmarket) to ActionScript 2.0 under Flash MX 2004.
+Patches from Kostas Chatzikokolakis about error checking of input data length.
+WriteUTF() writes the string length as long for lengths > 65535.
+Also, check for (defined $s) and not just ($s) in writeUTF.
+
 0.14 Sun Jul 11 18:59:36 EDT 2004
 Really fixed the number 16 issue (forgot to include the change in 0.13).
 Added Richard Boulton's change to readDouble() and writeDouble() to take into account endian-ness.

@@ -14,6 +14,10 @@ package AMF::Perl::IO::OutputStream;
 
 ==head1 CHANGES
 
+=head2 Sun Sep 19 12:59:11 EDT 2004
+=item Check for (defined $s) and not just ($s) in writeUTF.
+=item Write string length as long if it is over 65535.
+
 =head2 Sun Jun 20 13:32:31 EDT 2004
 =item Added $s="" unless $s in writeUTF to avoid warnings.
 
@@ -71,9 +75,16 @@ sub writeLong
 sub writeUTF
 {
     my ($self, $s)=@_;
-	$s = "" unless $s;
+	$s = "" unless defined($s);
     # write the string length - max 65536
-    $self->writeInt(length($s));
+	if (length($s) <= 65535)
+	{
+    	$self->writeInt(length($s));
+	}
+	else
+	{
+		$self->writeLong(length($s));
+	}
     # write the string chars
     $self->{outBuffer} .= $s;
 }

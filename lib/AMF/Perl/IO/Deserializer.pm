@@ -14,6 +14,10 @@ AMF::Perl::IO::Deserializer
 
 =head1 CHANGES
 
+=head2 Sun Sep 19 13:01:35 EDT 2004
+
+=item Patch from Kostas Chatzikokolakis about error checking of input data length.
+
 =head2 Sat Mar 13 16:31:31 EST 2004
 
 =item Patch from Kostas Chatzikokolakis handling encoding.
@@ -145,6 +149,7 @@ sub readObject
         
     for  (my $type = $self->{inputStream}->readByte(); $type != 9; $type = $self->{inputStream}->readByte())
     {	
+		die "Malformed AMF data, no object end byte" unless defined($type);
         # grab the value
         my $val = $self->readData($type);
         # save the name/value pair in the array
@@ -164,6 +169,7 @@ sub readArray
     my @ret;
     # get the length of the array
     my $length = $self->{inputStream}->readLong();
+	die "Malformed AMF data, array length too big" if $length > $self->{inputStream}{content_length};
     # loop over all of the elements in the data
     for (my $i=0; $i<$length; $i++)
     {
@@ -334,7 +340,7 @@ sub readData
     }
     else # unknown case
     {
-        print "xxx $type ";
+        print STDERR "Unknown data type: $type\n";
     }
 
     return $data;

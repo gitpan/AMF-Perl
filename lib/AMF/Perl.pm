@@ -22,7 +22,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 @EXPORT = qw(amf_throw);
 
-$VERSION = '0.14';
+$VERSION = '0.15';
 
 
 =head1 NAME
