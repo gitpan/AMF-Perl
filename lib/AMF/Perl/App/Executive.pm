@@ -16,6 +16,10 @@ Then it executes the desired method in the package.
 
 =head1 CHANGES
 
+=head2 Wed Apr 14 11:06:28 EDT 2004
+
+=item Added return type determination for registered methods.
+
 =head2 Sun Mar 23 13:27:00 EST 2003
 
 =over 4
@@ -288,6 +292,22 @@ sub doMethodCall_registered
     else
     {
         $self->{_returnType} = "unknown";
+
+    	if ($serviceobject->can("methodTable") && exists ($serviceobject->methodTable->{$method}))
+    	{
+			# create a shortcut to the methodTable
+        	my %methodrecord = %{$serviceobject->methodTable->{$method}};
+        	# check to see if an explicit return type was defined
+        	if (exists($methodrecord{'returns'}))
+        	{
+            	$self->{_returnType} = $methodrecord{'returns'};
+        	}
+        	# set the default return type of "unknown"
+        	else
+        	{
+            	$self->{_returnType} = "unknown";
+        	}
+		}
         return $serviceobject->$method(@$a);
     }    
 }

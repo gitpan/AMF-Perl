@@ -14,6 +14,12 @@ package AMF::Perl::IO::Serializer;
 
 =head1 CHANGES
 
+=head2 Wed Apr 14 11:06:28 EDT 2004
+
+=item Made basic data type determination work for both scalars and scalarrefs.
+
+=item Now we check if we are sending a recordset and setting column types accordingly.
+
 =head2 Sat Mar 13 16:25:00 EST 2004
 
 =item Patch from Tilghman Lesher that detects numbers and dates in strings
@@ -39,6 +45,7 @@ are stored as hash keys.
 use strict;
 
 use Encode qw/from_to/;
+use DBI;
 
 # holder for the data
 my $data;
@@ -104,7 +111,6 @@ sub writeBody
     $self->{out}->writeLong(-1);
     # write the data to the output stream
     $self->writeData($body->{"value"}, $body->{"type"});
-
 }
 
 # writes a boolean
@@ -188,8 +194,30 @@ sub writeArray
     # write all of the array elements
     for(my $i=0 ; $i < $len ; $i++)
     {
-        $self->writeData($d->[$i]);
+		#If this is a basic data type in a recordset, consider the column type.
+		if (!(ref $d->[$i]) && $self->{__writingRecordset__})
+		{
+			my $type = $self->{__columnTypes__}->[$i];
+			$self->dispatchBySqlType($d->[$i], $type);
+		}
+		else
+		{
+        	$self->writeData($d->[$i]);
+		}
     }
+}
+
+sub dispatchBySqlType
+{
+	my ($self, $data, $type) = @_;
+	if ($type && ($type == DBI::SQL_NUMERIC) || ($type == DBI::SQL_DECIMAL) || ($type == DBI::SQL_INTEGER) || ($type == DBI::SQL_SMALLINT) || ($type == DBI::SQL_FLOAT) || ($type == DBI::SQL_DOUBLE) || ($type == DBI::SQL_REAL))
+	{
+		$self->writeNumber($data);
+	}
+	else
+	{
+		$self->writeString($data);
+	}
 }
     
 sub writeHash
@@ -209,8 +237,13 @@ sub writeObject
     {	
         # write the name of the object
         $self->{out}->writeUTF($key);
+		if ($self->{__columnTypes__} && $key eq "initialData")
+		{
+			$self->{__writingRecordset__} = 1;
+		}
         # write the value of the object
         $self->writeData($data);
+		$self->{__writingRecordset__} = 0;
     }
     # write the end object flag 0x00, 0x00, 0x09
     $self->{out}->writeInt(0);
@@ -227,8 +260,10 @@ sub writeAMFObject
     $self->{out}->writeByte(16);
     # write the package name
     $self->{out}->writeUTF($object->{_explicitType});
+	$self->{__columnTypes__} = $object->{__columnTypes__} if $object->{__columnTypes__};
     # write the package's data
     $self->writeObject($object);                        
+	delete $self->{__columnTypes__};
 }
 
 
@@ -265,34 +300,14 @@ sub writeData
 		else
 		{
         my $myRef = ref $d;
+
         if (!$myRef || $myRef =~ "SCALAR")
         {
 			if ($myRef) {
 				study $$myRef;
-				if ($$myRef =~ m/^(\d{4})\-(\d{2})\-(\d{2})( (\d{2}):(\d{2}):(\d{2}))?$/) {
-					# Handle "YYYY-MM-DD" and "YYYY-MM-DD HH:MM:SS"
-					require POSIX;
-					if ($4) {
-						$$myRef = POSIX::mktime($7,$6,$5,$3,$2 - 1,$1 - 1900) * 1000;
-					} else {
-						$$myRef = POSIX::mktime(0,0,0,$3,$2 - 1,$1 - 1900) * 1000;
-					}
-					$type = "date";
-				} elsif ($$myRef =~ m/[^0-9\.\-]/) {
-					$type = "string";
-				} elsif ($$myRef =~ m/\..*\./) {
-					# More than 1 period (e.g. IP address)
-					$type = "string";
-				} elsif (($$myRef =~ m/.\-/) or ($$myRef eq '-')) {
-					# negative anywhere but at the beginning
-					$type = "string";
-				} elsif ($$myRef =~ m/\./) {
-					$type = "double";
-				} else {
-					$type = "integer";
-				}
+				$type = $self->deduceType($$myRef);
 			} else {
-				$type = "string";
+				$type = $self->deduceType($d);
 			}
         }
         elsif ($myRef =~ "ARRAY")
@@ -383,4 +398,36 @@ sub writeData
     }
     
     }
+
+sub deduceType
+{
+	my ($self, $scalar) = @_;
+
+	my $type = "string";
+
+	if ($scalar =~ m/^(\d{4})\-(\d{2})\-(\d{2})( (\d{2}):(\d{2}):(\d{2}))?$/) 
+	{
+		# Handle "YYYY-MM-DD" and "YYYY-MM-DD HH:MM:SS"
+		require POSIX;
+		if ($4) {
+			$scalar = POSIX::mktime($7,$6,$5,$3,$2 - 1,$1 - 1900) * 1000;
+		} else {
+			$scalar = POSIX::mktime(0,0,0,$3,$2 - 1,$1 - 1900) * 1000;
+		}
+		$type = "date";
+	} elsif ($scalar =~ m/[^0-9\.\-]/) {
+		$type = "string";
+	} elsif ($scalar =~ m/\..*\./) {
+		# More than 1 period (e.g. IP address)
+		$type = "string";
+	} elsif (($scalar =~ m/.\-/) or ($scalar eq '-')) {
+		# negative anywhere but at the beginning
+		$type = "string";
+	} elsif ($scalar =~ m/\./) {
+		$type = "double";
+	} else {
+		$type = "integer";
+	}
+	return $type;
+}
 1;

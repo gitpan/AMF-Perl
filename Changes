@@ -1,6 +1,9 @@
 Revision history for Perl extension AMF::Perl.
 
+0.11 Sat Apr 24 21:02:55 EDT 2004
+Renamed to AMF::Perl
+
 0.01  Sun Apr  6 16:02:18 2003
 	- original version; created by h2xs 1.22 with options
-		-b 5.0.0.4 -XAn AMF::Perl
+		-b 5.0.0.4 -XAn Flash::FLAP
 

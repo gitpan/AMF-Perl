@@ -16,6 +16,10 @@ package AMF::Perl::Sql::MysqlRecordSet;
 
 =head1 CHANGES
 
+=head2 Wed Apr 14 11:06:28 EDT 2004
+
+=item Started taking column types from statement handle.
+
 =head2 Sun Jul 27 16:50:28 EDT 2003
 
 =item Moved the formation of the query object into Util::Object->pseudo_query().
@@ -59,7 +63,9 @@ sub query
 
     my @initialData;
 
-	my @columnNames = @{$sth->{NAME}};
+	my $columnNames = $sth->{NAME};
+
+	my $columnTypes = $sth->{TYPE};
 
     # grab all of the rows
 	# There is a reason arrayref is not used - if it is, 
@@ -70,7 +76,7 @@ sub query
         push @initialData, \@array;
     }	
 
-    return AMF::Perl::Util::Object->pseudo_query(\@columnNames, \@initialData);
+    return AMF::Perl::Util::Object->pseudo_query($columnNames, \@initialData, $columnTypes);
 }
 
 1;

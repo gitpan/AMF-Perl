@@ -15,6 +15,10 @@ package AMF::Perl::Util::Object;
 
 =head1 CHANGES
 
+=head2 Wed Apr 14 11:06:28 EDT 2004
+
+=item Saving column types in the __columnTypes__ field for the recordset object.
+
 Sun Jul 27 16:52:12 EDT 2003
 
 =item Added the pseudo_query() method to create a recordset object wanted by Flash.
@@ -90,7 +94,7 @@ sub getBodyAt
 
 sub pseudo_query
 {
-    my ($self, $columnNames, $data) = @_;
+    my ($self, $columnNames, $data, $columnTypes) = @_;
 
     my $result = new AMF::Perl::Util::Object;
     # create the serverInfo array
@@ -110,6 +114,8 @@ sub pseudo_query
     $result->{"serverInfo"}->{"version"} = 1;
 
     $result->{_explicitType}='RecordSet';
+
+    $result->{__columnTypes__}=$columnTypes;
 
     return $result;
 }

@@ -8,7 +8,7 @@ http://www.macromedia.com/devnet/mx/blueprint/
 There are a few steps to get it working - you need to compile each movie separately, for example.
 To make thing easier, a fully precompiled client side is provided at the AMF::Perl web site:
 
-http://www.simonf.com/flap/petmarket/
+http://www.simonf.com/flap/examples/petmarket/index.html
 
 (Unlike other examples, the client is NOT included into the AMF::Perl distribution due to its size.)
 

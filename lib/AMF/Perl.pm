@@ -24,7 +24,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 	
 );
 
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 
 =head1 NAME
@@ -105,6 +105,9 @@ ORIGINAL PHP Remoting CONTRIBUTORS
 
 ==head1 CHANGES
 
+=head2 Sat Apr 24 20:41:10 EDT 2004
+=item Another patch from Kostas Chatzikokolakis fixing MP2 issues.
+
 =head2 Sat Mar 13 16:25:00 EST 2004
 
 =item Patch from Kostas Chatzikokolakis handling encoding.
@@ -173,8 +176,13 @@ sub service
     {
         require mod_perl;
         my $MP2 = ($mod_perl::VERSION >= 1.99);
+		if ($MP2)
+		{
+			use Apache2;
+			require Apache::RequestUtil;  # needed for Apache->request
+		}
         my $r = Apache->request();
-        $r->read($content, $r->header_in('Content-Length'));
+        $r->read($content, $r->headers_in->{'Content-Length'});
     }
     else
     {
@@ -292,11 +300,15 @@ sub _service
 
     if($ENV{MOD_PERL})
     {
-        require mod_perl;
         my $MP2 = ($mod_perl::VERSION >= 1.99);
         my $r = Apache->request();
-        $r->send_http_header("application/x-amf");
+		#$r->header_out("Content-Length", $resLength);
+        #$r->send_http_header("application/x-amf");
+        $r->content_type("application/x-amf");
+        $r->headers_out->{'Content-Length'} = $resLength;
+        $r->send_http_header unless $MP2;
         $r->print($response);
+
     }
 	else
 	{
