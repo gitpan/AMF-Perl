@@ -12,6 +12,11 @@ package AMF::Perl::IO::OutputStream;
 
     Class used to convert the perl stuff into binary    
 
+==head1 CHANGES
+=head2 Sun Jun 20 13:32:31 EDT 2004
+=item Added $s="" unless $s in writeUTF to avoid warnings.
+
+
 =cut
 
 use strict;
@@ -51,6 +56,7 @@ sub writeLong
 sub writeUTF
 {
     my ($self, $s)=@_;
+	$s = "" unless $s;
     # write the string length - max 65536
     $self->writeInt(length($s));
     # write the string chars

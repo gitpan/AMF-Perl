@@ -5,7 +5,7 @@
 # The initial code is based on the AMF-PHP project (http://amfphp.sourceforge.net/)
 
 #This is a server-side script that responds to an Macromedia Flash client 
-#talking in ActionScript. See the AMF::Perl project site (http://www.simonf.com/flap) 
+#talking in ActionScript. See the AMF::Perl project site (http://www.simonf.com/amfperl) 
 #for more information.
 
 #You can pass arguments from your Flash code to the perl script.

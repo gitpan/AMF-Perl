@@ -6,7 +6,7 @@ package petmarket::api::stringresourcesservice;
 # under the same terms as Perl itself.
 
 #This is server side for the Macromedia's Petmarket example.
-#See http://www.simonf.com/flap for more information.
+#See http://www.simonf.com/amfperl for more information.
 
 use warnings;
 use strict;

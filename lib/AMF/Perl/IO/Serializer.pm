@@ -14,6 +14,11 @@ package AMF::Perl::IO::Serializer;
 
 =head1 CHANGES
 
+=head2 Sun May 23 12:35:19 EDT 2004
+
+=item Changed deduceType() to return the value too, as it may be changed inside, and to 
+handle empty string ('') as a string.
+
 =head2 Wed Apr 14 11:06:28 EDT 2004
 
 =item Made basic data type determination work for both scalars and scalarrefs.
@@ -305,9 +310,9 @@ sub writeData
         {
 			if ($myRef) {
 				study $$myRef;
-				$type = $self->deduceType($$myRef);
+				($type, $d) = $self->deduceType($$myRef);
 			} else {
-				$type = $self->deduceType($d);
+				($type, $d) = $self->deduceType($d);
 			}
         }
         elsif ($myRef =~ "ARRAY")
@@ -425,9 +430,11 @@ sub deduceType
 		$type = "string";
 	} elsif ($scalar =~ m/\./) {
 		$type = "double";
+	} elsif ($scalar eq '') {
+		$type = "string";
 	} else {
 		$type = "integer";
 	}
-	return $type;
+	return ($type, $scalar);
 }
 1;

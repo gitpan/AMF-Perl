@@ -1,5 +1,28 @@
 Revision history for Perl extension AMF::Perl.
 
+0.13 Sun Jun 20 15:52:57 EDT 2004
+Started duplicating changes in this file.
+
+AMF::Perl
+Made printing output a separate function, requested by Scott Penrose.
+Added and exported amf_throw() that invokes _onStatus callback in Actionscript.
+
+AMF::Perl::IO::OutputStream
+Added "$s="" unless $s" in writeUTF() to avoid warnings.
+
+Examples / Petmarket
+Fixed catalogservice.pm to not break when search string is not found.
+
+AMF::Perl::IO::InputStream
+Improved the check in readDouble to append "0" to the string instead of skipping
+the value. Otherwise the number 16 did not go through.
+Added defined($thisByte) in readInt, otherwise the character "0" (say, in string length of 30)
+did not go through.
+
+
+0.12 Thu Apr 29 17:20:07 EDT 2004
+AMF::Perl - changed "use Apache2" to "require Apache2".
+
 0.11 Sat Apr 24 21:02:55 EDT 2004
 Renamed to AMF::Perl
 

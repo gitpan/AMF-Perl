@@ -15,6 +15,12 @@ package AMF::Perl::IO::InputStream;
 
 =head1 CHANGES    
 
+=head2 Tue Jun 22 19:28:30 EDT 2004
+=item Improved the check in readDouble to append "0" to the string instead of skipping
+the value. Otherwise the number 16 did not go through.
+=item Added defined($thisByte) in readInt, otherwise the character "0" (say, in string length of 30)
+did not go through.
+
 =head2 Sat Mar 13 16:39:29 EST 2004
 
 =item Changed calls to ord() in readByte() and concatenation readDouble() 
@@ -66,8 +72,8 @@ sub readInt
 	my $thisByte = $self->{raw_data}->[$self->{current_byte}];
 	my $nextByte = $self->{raw_data}->[$self->{current_byte}+1];
 
-	my $thisNum = $thisByte ? ord($thisByte) : 0;
-	my $nextNum = $nextByte ? ord($nextByte) : 0;
+    my $thisNum = defined($thisByte) ? ord($thisByte) : 0;
+    my $nextNum = defined($nextByte) ? ord($nextByte) : 0;
 
     my $result = (($thisNum) << 8) | $nextNum;
 

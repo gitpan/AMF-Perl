@@ -20,11 +20,9 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-@EXPORT = qw(
-	
-);
+@EXPORT = qw(amf_throw);
 
-$VERSION = '0.12';
+$VERSION = '0.13';
 
 
 =head1 NAME
@@ -104,36 +102,87 @@ ORIGINAL PHP Remoting CONTRIBUTORS
     Klaasjan Tukker - modifications, check routines, and register-framework
 
 ==head1 CHANGES
+=head2 Sun Jun 20 13:32:31 EDT 2004
+
+=over 4
+
+=item Made printing output a separate function, requested by Scott Penrose.
+
+=item Wrote exportable amf_throw() for exception handling.
+
+=back
+
 =head2 Thu Apr 29 17:20:07 EDT 2004
+
+=over 4
+
 =item Changed "use Apache2" to "require Apache2" to avoid breaking on non-modperl systems.
 
+=back
+
 =head2 Sat Apr 24 20:41:10 EDT 2004
+
+=over 4
+
 =item Another patch from Kostas Chatzikokolakis fixing MP2 issues.
+
+=back
 
 =head2 Sat Mar 13 16:25:00 EST 2004
 
+=over 4
+
 =item Patch from Kostas Chatzikokolakis handling encoding.
+
 =item Changed non-mod_perl behavior for reading POST data from using <> to using read()
 to work around a bug in IIS
+
 =item Joined code for mod_perl 1 and 2. Separated the output code for the mod_perl and non-mod_perl
 cases.
 
-Sat Aug  2 14:01:15 EDT 2003
-Changed new() to be invokable on objects, not just strings.
+=back
 
-Sun Jul 20 19:27:44 EDT 2003
-Added "binmode STDIN" before reading input to prevent treating 0x1a as EOF on Windows.
+=head2 Sat Aug  2 14:01:15 EDT 2003
 
-Wed Apr 23 19:22:56 EDT 2003
-Added "binmode STDOUT" before printing headers to prevent conversion of 0a to 0d0a on Windows.
-Added modperl 1 support and (so far commented out) hypothetical modperl 2 support.
+=over 4
 
-Sun Mar  23 13:27:00 EST 2003
-Synching with AMF-PHP:
+=item Changed new() to be invokable on objects, not just strings.
+
+=back
+
+=head2 Sun Jul 20 19:27:44 EDT 2003
+
+=over 4
+
+=item Added "binmode STDIN" before reading input to prevent treating 0x1a as EOF on Windows.
+
+=back
+
+=head2 Wed Apr 23 19:22:56 EDT 2003
+
+=over 4
+
+=item Added "binmode STDOUT" before printing headers to prevent conversion of 0a to 0d0a on Windows.
+
+=item Added modperl 1 support and (so far commented out) hypothetical modperl 2 support.
+
+=back
+
+=head2 Sun Mar  23 13:27:00 EST 2003
+
+=over 4
+
+=item Synching with AMF-PHP:
+
 Added functions debugDir() and log() (debug() in PHP), added reading headers to service().
 Added fromFile() to enable parsing traffic dumps.
+
+=back
     
 =cut
+
+use Devel::StackTrace;
+use Exception::Class ('AMFException');
 
 # load the required system packagees
 use AMF::Perl::IO::InputStream;
@@ -143,8 +192,6 @@ use AMF::Perl::IO::Serializer;
 use AMF::Perl::IO::OutputStream;
 use AMF::Perl::Util::Object;
 
-my $exec;
-
 # constructor
 sub new
 {
@@ -153,6 +200,7 @@ sub new
     my $self = {};
     bless $self, $class;
     $self->{exec} = new AMF::Perl::App::Executive();
+	$self->{"response"} = "/onResult";
     $self->{debug}=0;
     return $self;
 }
@@ -271,11 +319,24 @@ sub _service
         $self->{exec}->setTarget( $body->{"target"} );
         #/Simon
         # execute the method and pass it the arguments
-        my $results = $self->{exec}->doMethodCall( $body->{"value"} );
+       	my $results;
+
+         # try
+         eval {
+            $results =  $self->{exec}->doMethodCall( $body->{"value"} );
+        };
+
+         # catch
+         if ( UNIVERSAL::isa( $@, 'AMFException' ) )
+         {
+            $results = $@->error;
+            $self->{"response"} = "/onStatus";
+         }
+
         # get the return type
         my $returnType = $self->{exec}->getReturnType();
         # save the result in our amfout object
-        $amfout->addBody($body->{"response"}."/onResult", "null", $results, $returnType);
+        $amfout->addBody($body->{"response"}.$self->{"response"}, "null", $results, $returnType);
     }
     
     # create a new output stream
@@ -295,10 +356,20 @@ sub _service
 
     # send the correct header
     my $response = $outstream->flush();
-    my $resLength = length $response;
 
 	#Necessary on Windows to prevent conversion of 0a to 0d0a.
 	binmode STDOUT;
+
+	$self->output($response);
+
+	return $self;
+}
+
+sub output
+{
+	my ($self, $response) = @_;
+
+    my $resLength = length $response;
 
     if($ENV{MOD_PERL})
     {
@@ -318,14 +389,9 @@ sub _service
 Content-Type: application/x-amf
 Content-Length: $resLength
 
+$response
 EOF
-
-    	# flush the amf data to the client.
-    	print $response;
-
 	}
-    return $self;
-        
 }
 
 sub debugDir
@@ -355,6 +421,26 @@ sub registerService
     my ($self, $package, $servicepackage) = @_;
     $self->{exec}->registerService($package, $servicepackage);
 }
+
+sub amf_throw
+{
+    my ($description) = @_;
+    my $stack = Devel::StackTrace->new();
+                                                                                   
+    my %result;
+    $description = "An error occurred" unless $description;
+    $result{"description"} = $description;
+    $result{"exceptionStack"} = $stack->as_string;     
+	my @frames = $stack->frames;
+    $result{"details"} = $frames[1]->filename();
+    $result{"line"} = $frames[1]->line();
+    $result{"level"} = "Error";
+    $result{"code"} = "1";
+
+
+    AMFException->throw( error => \%result );
+}
+
 
 sub setSafeExecution
 {

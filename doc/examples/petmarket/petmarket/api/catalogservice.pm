@@ -6,7 +6,7 @@ package petmarket::api::catalogservice;
 # under the same terms as Perl itself.
 
 #This is server side for the Macromedia's Petmarket example.
-#See http://www.simonf.com/flap for more information.
+#See http://www.simonf.com/amfperl for more information.
 
 use warnings;
 use strict;
@@ -15,7 +15,7 @@ use petmarket::api::dbConn;
 use vars qw/@ISA/;
 @ISA=("petmarket::api::dbConn");
 
-use AMF::Perl::Util::Object;
+use Flash::FLAP::Util::Object;
 
 sub methodTable
 {
@@ -62,7 +62,7 @@ sub getCategories
 
     my @columnNames = ("CATEGORYOID", "CATEGORYDISPLAYNAME", "CATEGORYNAME", "COLOR");
 
-    return AMF::Perl::Util::Object->pseudo_query(\@columnNames, \@result);
+    return Flash::FLAP::Util::Object->pseudo_query(\@columnNames, \@result);
 }
 
 
@@ -86,7 +86,7 @@ sub getProducts
 
     my @columnNames = ("CATEGORYOID", "PRODUCTOID", "PRODUCTID", "NAME", "IMAGE", "DESCRIPTION");
 
-    return AMF::Perl::Util::Object->pseudo_query(\@columnNames, \@result);
+    return Flash::FLAP::Util::Object->pseudo_query(\@columnNames, \@result);
 }
 
 
@@ -113,7 +113,7 @@ sub getItems
 
     my @columnNames = ("ITEMOID", "ITEMID", "ITEMNAME", "QUANTITY", "PRODUCTIOID", "LISTPRICE", "DESCRIPTION", "NAME", "CATEGORYOID");
 
-    return AMF::Perl::Util::Object->pseudo_query(\@columnNames, \@result);
+    return Flash::FLAP::Util::Object->pseudo_query(\@columnNames, \@result);
 }
 
 sub searchProducts
@@ -132,7 +132,11 @@ sub searchProducts
     @catids = map {"'$_'"} @catids;
     my $catIdList = join ",", @catids;
 
-    $ary_ref = $self->dbh->selectall_arrayref("SELECT DISTINCT a.productid, b.name, a.catid, c.name FROM product a, product_details b, category_details c WHERE a.productid=b.productid AND a.catid=c.catid AND (b.name like '%$query%' OR a.catid IN ($catIdList))");
+    my $productQuery = "SELECT DISTINCT a.productid, b.name, a.catid, c.name FROM product a, product_details b, category_details c WHERE a.productid=b.productid AND a.catid=c.catid AND (b.name like '%$query%'";
+    $productQuery .= " OR a.catid IN ($catIdList)" if $catIdList;
+	$productQuery .= ")";
+
+    $ary_ref = $self->dbh->selectall_arrayref($productQuery);
     foreach my $rowRef (@$ary_ref)
     {
         my ($productid, $productName, $catid, $catName) = @$rowRef;
@@ -148,7 +152,7 @@ sub searchProducts
 
     my @columnNames = ("PRODUCTOID", "NAME", "CATEGORYOID", "COLOR", "CATEGORYNAME", "CATEGORYDISPLAYNAME");
 
-    return AMF::Perl::Util::Object->pseudo_query(\@columnNames, \@result);
+    return Flash::FLAP::Util::Object->pseudo_query(\@columnNames, \@result);
 }
 
 
