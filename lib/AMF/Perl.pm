@@ -24,7 +24,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 	
 );
 
-$VERSION = '0.11';
+$VERSION = '0.12';
 
 
 =head1 NAME
@@ -104,6 +104,8 @@ ORIGINAL PHP Remoting CONTRIBUTORS
     Klaasjan Tukker - modifications, check routines, and register-framework
 
 ==head1 CHANGES
+=head2 Thu Apr 29 17:20:07 EDT 2004
+=item Changed "use Apache2" to "require Apache2" to avoid breaking on non-modperl systems.
 
 =head2 Sat Apr 24 20:41:10 EDT 2004
 =item Another patch from Kostas Chatzikokolakis fixing MP2 issues.
@@ -178,7 +180,7 @@ sub service
         my $MP2 = ($mod_perl::VERSION >= 1.99);
 		if ($MP2)
 		{
-			use Apache2;
+			require Apache2;
 			require Apache::RequestUtil;  # needed for Apache->request
 		}
         my $r = Apache->request();
