@@ -19,6 +19,8 @@ use AMF::Perl qw/amf_throw/;
 </pre>
 
 and then call <em>amf_throw()</em> with a string or an arbitrary object as a parameter.
+<br><br>
+If you call <em>die "Error message"</em>, it will be also caught in the same way and sent as an error to Flash.
 
 <br><br>
 <a href=basic.pl>This is the server-side Perl script basic.pl.</a>

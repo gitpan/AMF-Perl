@@ -3,7 +3,7 @@
 <head>
   <meta http-equiv="content-type"
  content="text/html; charset=ISO-8859-1">
-  <title>AMF::Perl - Flash Remoting in Perl</title>
+  <title>AMF::Perl - Flash Remoting in Perl and Python</title>
   <style>
 body {  
 	scrollbar-3d-light-color:		#000000; 
@@ -106,7 +106,7 @@ h4 {
 <body
  style="background-image: url(orn5.gif);">
 <div style="position: absolute; left: 20px;">
-<h1>AMF::Perl - Flash Remoting in Perl<br>
+<h1>AMF::Perl - Flash Remoting in Perl and Python<br>
 </h1>
 <table cellpadding="2" cellspacing="2" border="0"
  style="text-align: left; width: 600px;">
@@ -132,21 +132,258 @@ used in the ActionScript.
       <br><br>
 Client code:<br>
       <br>
-      <pre>//Obligatory includes<br>#include "NetServices.as"<br>#include "NetDebug.as"<br><br>//Get a connection object<br>NetServices.setDefaultGatewayURL("http://host/cpu.pl");<br>connection = NetServices.createGatewayConnection();<br><br>//Get a pointer to a service<br>remoteService = connection.getService("Foo", this);<br><br>//Call a remote method on that service<br>remoteService.bar();<br><br>//or... send arguments to the server:<br>remoteService.bar(arg1, arg2);<br><br>//This callback function will be invoked<br>function bar_result(value)<br>{<br>	//do something with the value<br>}<br></pre>
+<textarea cols=50 rows=30>
+//Obligatory includes
+#include "NetServices.as"
+#include "NetDebug.as"
+
+//Get a connection object
+NetServices.setDefaultGatewayURL("http://host/cpu.pl");
+connection = NetServices.createGatewayConnection();
+
+//Get a pointer to a service
+remoteService = connection.getService("Foo", this);
+
+//Call a remote method on that service
+remoteService.bar();
+
+//or... send arguments to the server:
+remoteService.bar(arg1, arg2);
+
+//This callback function will be invoked
+function bar_result(value)
+{
+	//do something with the value
+}
+</textarea>
 &nbsp; <br>
-      <big> Server code, option A - service registration.</big><br>
+      <h3> Server code, option A - service registration.</h3><br>
 Use in simple applications.<br>
-      <pre>
-use AMF::Perl;<br><br>package Foo;<br><br>sub new<br>{<br>    my ($proto)=@_;<br>    my $self={};<br>    bless $self, $proto;<br>    return $self;<br>}<br><br>sub bar<br>{<br>	my ($self, $arg1, $arg2) = @_;<br>	my $value;<br><br>	#Compute a return value<br>	#...<br><br>	return $value;<br>}<br><br>#Create the gateway object<br>my $gateway = AMF::Perl-&gt;new; <br><br>#Register a service that provides methods.<br>#You can register more than one service.<br>#This can happen during server startup (if running under mod_perl).<br>$gateway-&gt;registerService("Foo",new Foo());<br><br>#Let the gateway figure out who will be called.<br>$gateway-&gt;service();<br> <br></pre>
-      <big> Server code, option B - limited service discovery.</big><br>
+<table>
+<tr><th>Perl</th><th>Python</th></tr>
+    <tr>
+<td valign=top>
+   
+<textarea cols=50 rows=40>
+use AMF::Perl;
+
+package Foo;
+
+sub new
+{
+    my ($proto)=@_;
+    my $self={};
+    bless $self, $proto;
+    return $self;
+}
+
+sub bar
+{
+	my ($self, $arg1, $arg2) = @_;
+	my $value;
+
+	#Compute a return value
+	#...
+
+	return $value;
+}
+
+#Create the gateway object
+my $gateway = AMF::Perl-&gt;new; 
+
+#Register a service that provides methods.
+#You can register more than one service.
+#This can happen during server startup (if running under mod_perl).
+$gateway-&gt;registerService("Foo",new Foo());
+
+#Let the gateway figure out who will be called.
+$gateway-&gt;service();
+ 
+</textarea>      
+</td>
+<td valign=top>
+File cpu.py:
+<textarea cols=50 rows=10>
+import AMF
+import cpuUsage
+import sys
+
+gateway = AMF.AMFPython.AMFPython()
+
+gateway.registerService("CpuUsage",cpuUsage.cpuUsage())
+
+gateway.service()
+</textarea>
+
+File cpuUsage.py:
+
+<textarea cols=50 rows=20>
+import os
+import sys
+import string
+
+class cpuUsage:
+    
+    def getCpuUsage(self, arg):
+    
+        child = os.popen("uptime")
+        output = child.read()
+        tokens = output.split()
+        
+        #Remove commas.
+        map(lambda x: x.replace(',', ''),  tokens)
+        
+        array = []
+        hash = {'Name' : 'L 1', 'Value' : tokens[9]}
+        array.append(hash)
+        hash = {'Name' : 'L 5', 'Value' : tokens[10]}
+        array.append(hash)
+        hash = {'Name' : 'L 15', 'Value' : tokens[11]}
+        array.append(hash)
+        return array
+
+</textarea>
+</td>
+</tr></table>
+<h3> Server code, option B - limited service discovery.</h3><br>
 Use in complex applications.<br>
       <br>
-Part 1.&nbsp; The gateway script.<br>
+<h3>Part 1.&nbsp; The gateway script.</h3><br>
       <br>
-      <pre>use AMF::Perl;<br><br><br>#Create the gateway object<br><br>my $gateway = AMF::Perl-&gt;new; <br><br>#Set a directory that will contain Perl package.<br>#Each package will correspond to one service -<br>#there can be as many as you want!<br>#You can set only one class path, though.<br><br>$gateway-&gt;setBaseClassPath("./basicservices/");<br><br>#Let the gateway figure out who will be called.<br><br>$gateway-&gt;service();<br><br><br></pre>
-      <span style="font-weight: bold;"></span><br>
-Part 2.&nbsp; Sample class in the registered directory.
-      <pre><br>package DataEcho;<br><br>sub new<br>{<br>    my ($proto)=@_;<br>    my $self={};<br>    bless $self, $proto;<br>    return $self;<br>}<br><br><br>sub methodTable<br>{<br>    return {<br>        "echoNormal" =&gt; {<br>            "description" =&gt; "Echoes the passed argument back to Flash (no need to set the return t<br>ype)",<br>            "access" =&gt; "remote", # available values are private, public, remote<br>        },<br>        "echoDate" =&gt; {<br>            "description" =&gt; "Echoes a Flash Date Object (the returnType needs setting)",<br>            "access" =&gt; "remote", # available values are private, public, remote<br>            "returns" =&gt; "date"<br>        },<br>        "echoXML" =&gt; {<br>            "description" =&gt; "Echoes a Flash XML Object (the returnType needs setting)",<br>            "access" =&gt; "private", # available values are private, public, remote<br>            "returns" =&gt; "xml"<br>        }<br>    };<br>}<br><br>sub echoNormal<br>{<br>    my ($self, $data) = @_;<br>    return $data;<br>}<br>sub echoDate<br>{<br>    my ($self, $data) = @_;<br>    return $data;<br>}<br>sub echoXML<br>{<br>    my ($self, $data) = @_;<br>    return $data;<br>}<br><br>1;<br><br></pre>
+<table>
+<tr><th>Perl</th><th>Python</th></tr>
+    <tr>
+<td valign=top>
+   
+<textarea cols=50 rows=20>
+	
+use AMF::Perl;
+
+
+#Create the gateway object
+
+my $gateway = AMF::Perl-&gt;new; 
+
+#Set a directory that will contain Perl package.
+#Each package will correspond to one service -
+#there can be as many as you want!
+#You can set only one class path, though.
+
+$gateway-&gt;setBaseClassPath("./basicservices/");
+
+#Let the gateway figure out who will be called.
+
+$gateway-&gt;service();
+</textarea>
+
+</td>
+<td valign=top>
+<textarea cols=50 rows=20>
+#!/usr/bin/python
+
+from AMF import AMF
+import sys
+import os
+
+gateway = AMF.AMF()
+
+gateway.setRelativeBaseClassPath("/basicservices")
+
+gateway.service()
+</textarea>
+</td></tr></table>
+<br>
+<h3>Part 2.&nbsp; Sample class in the registered directory.</h3>
+<table>
+<tr><th>Perl</th><th>Python</th></tr>
+    <tr>
+<td valign=top>
+   
+<textarea cols=50 rows=40>
+package DataEcho;
+
+sub new
+{
+    my ($proto)=@_;
+    my $self={};
+    bless $self, $proto;
+    return $self;
+}
+
+sub echoNormal
+{
+    my ($self, $data) = @_;
+    return $data;
+}
+sub echoDate
+{
+    my ($self, $data) = @_;
+    return $data;
+}
+sub echoXML
+{
+    my ($self, $data) = @_;
+    return $data;
+}
+
+sub methodTable
+{
+    return {
+        "echoNormal" =&gt; {
+            "description" =&gt; "Echoes the passed argument back to Flash (no need to set the return t
+ype)",
+            "access" =&gt; "remote", # available values are private, public, remote
+        },
+        "echoDate" =&gt; {
+            "description" =&gt; "Echoes a Flash Date Object (the returnType needs setting)",
+            "access" =&gt; "remote", # available values are private, public, remote
+            "returns" =&gt; "date"
+        },
+        "echoXML" =&gt; {
+            "description" =&gt; "Echoes a Flash XML Object (the returnType needs setting)",
+            "access" =&gt; "private", # available values are private, public, remote
+            "returns" =&gt; "xml"
+        }
+    };
+}
+
+1;
+</textarea>
+</td>
+<td valign=top>
+<textarea cols=50 rows=40>
+import sys
+class DataEcho:
+    
+    def echoNormal(self, arg):
+        return arg
+
+    def echoDate(self, arg):
+        return arg
+
+    def echoXML(self, arg):
+        return arg
+
+    def methodTable(self):
+        table = {}
+        table["echoNormal"]= {
+                    "description" : "Echoes the passed argument back to Flash (no need to set the return type)",
+                    "access" : "remote", # available values are private, public, remote
+            }
+        table["echoDate"] = {
+                    "description" : "Echoes a Flash Date Object (the returnType needs setting)",
+                    "access" : "remote", # available values are private, public, remote
+                    "returns" : "date"
+            }
+        table["echoXML"] = {
+                    "description" : "Echoes a Flash XML Object (the returnType needs setting)",
+                    "access" : "private", # available values are private, public, remote
+                    "returns" : "xml"
+            }
+        return table
+</textarea>
+</td></tr></table>
+
       </td>
     </tr>
   </tbody>

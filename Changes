@@ -1,5 +1,10 @@
 Revision history for Perl extension AMF::Perl.
 
+0.14 Sun Jul 11 18:59:36 EDT 2004
+Really fixed the number 16 issue (forgot to include the change in 0.13).
+Added Richard Boulton's change to readDouble() and writeDouble() to take into account endian-ness.
+Changed the behavior of amf_throw() to enable die() to work.
+
 0.13 Sun Jun 20 15:52:57 EDT 2004
 Started duplicating changes in this file.
 
@@ -8,16 +13,19 @@ Made printing output a separate function, requested by Scott Penrose.
 Added and exported amf_throw() that invokes _onStatus callback in Actionscript.
 
 AMF::Perl::IO::OutputStream
-Added "$s="" unless $s" in writeUTF() to avoid warnings.
-
-Examples / Petmarket
-Fixed catalogservice.pm to not break when search string is not found.
+Added '$s="" unless $s' in writeUTF() to avoid warnings.
 
 AMF::Perl::IO::InputStream
 Improved the check in readDouble to append "0" to the string instead of skipping
 the value. Otherwise the number 16 did not go through.
 Added defined($thisByte) in readInt, otherwise the character "0" (say, in string length of 30)
 did not go through.
+
+Examples / Basic 
+Added a button that triggers an exception, thrown in DataEcho.pm
+
+Examples / Petmarket
+Fixed catalogservice.pm to not break when search string is not found.
 
 
 0.12 Thu Apr 29 17:20:07 EDT 2004

@@ -22,7 +22,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 @EXPORT = qw(amf_throw);
 
-$VERSION = '0.13';
+$VERSION = '0.14';
 
 
 =head1 NAME
@@ -102,6 +102,11 @@ ORIGINAL PHP Remoting CONTRIBUTORS
     Klaasjan Tukker - modifications, check routines, and register-framework
 
 ==head1 CHANGES
+
+=head2 Sun Jul 11 18:45:40 EDT 2004
+
+=item Chaned eval{} and amf_throw() to enable die() to work as well (instead of amf_throw()).
+
 =head2 Sun Jun 20 13:32:31 EDT 2004
 
 =over 4
@@ -319,22 +324,25 @@ sub _service
         $self->{exec}->setTarget( $body->{"target"} );
         #/Simon
         # execute the method and pass it the arguments
-       	my $results;
+        
+       	my ($results, $returnType);
 
-         # try
-         eval {
-            $results =  $self->{exec}->doMethodCall( $body->{"value"} );
+        # try
+        eval
+        {
+           $results =  $self->{exec}->doMethodCall( $body->{"value"} );
+           # get the return type
+           $returnType = $self->{exec}->getReturnType();
         };
 
-         # catch
-         if ( UNIVERSAL::isa( $@, 'AMFException' ) )
-         {
-            $results = $@->error;
+        
+        if ( $@ )
+        {
+            $results = UNIVERSAL::isa( $@, 'AMFException' ) ?  $@->error : constructException($@);
             $self->{"response"} = "/onStatus";
-         }
+            $returnType = "AMFObject"; 
+        } 
 
-        # get the return type
-        my $returnType = $self->{exec}->getReturnType();
         # save the result in our amfout object
         $amfout->addBody($body->{"response"}.$self->{"response"}, "null", $results, $returnType);
     }
@@ -422,23 +430,30 @@ sub registerService
     $self->{exec}->registerService($package, $servicepackage);
 }
 
-sub amf_throw
+
+sub constructException
 {
     my ($description) = @_;
     my $stack = Devel::StackTrace->new();
-                                                                                   
+
     my %result;
     $description = "An error occurred" unless $description;
     $result{"description"} = $description;
-    $result{"exceptionStack"} = $stack->as_string;     
-	my @frames = $stack->frames;
+    $result{"exceptionStack"} = $stack->as_string;
+    my @frames = $stack->frames;
     $result{"details"} = $frames[1]->filename();
     $result{"line"} = $frames[1]->line();
     $result{"level"} = "Error";
     $result{"code"} = "1";
+    return \%result;
+}
 
 
-    AMFException->throw( error => \%result );
+sub amf_throw
+{
+    my ($description) = @_;
+
+    AMFException->throw( error => constructException($description) );
 }
 
 

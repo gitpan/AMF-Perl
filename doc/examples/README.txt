@@ -4,7 +4,7 @@ See http://www.simonf.com/amfperl for more information
 Version: 0.09
 Date: March 13, 2004.
 
-1. The "cpu" directory contains an example of simple registration that returns a complex data structure (array of hashes). The Flash movies shows a bar chart of the current server load as reported by uptime.
+1. The "cpu" directory contains an example of simple object registration that returns a complex data structure (array of hashes). The Flash movies shows a bar chart of the current server load as reported by uptime.
 
 2. The "datagrid" directory is an example of using an advanced GUI control in a Flash movie.
 

@@ -30,12 +30,16 @@ to prevent the appearance of the "uninitialized" warning.
 
 =item Rewrote readInt to get rid of the "uninitialized" warning when reading bytes of value 0.
 
+=head2 Sun Jul 11 18:45:40 EDT 2004
+
+=item Added the check for endianness.
+
+
 =cut
 
 use strict;
 
 #InputStream constructor
-#arguments	$rd	raw data stream
 sub new
 {
     my ($proto,  $rd )=@_;
@@ -47,6 +51,14 @@ sub new
     $self->{raw_data} = \@array;
     # grab the total length of this stream
     $self->{content_length} = length($self->{raw_data});
+    if (unpack("h*", pack("s", 1)) =~ /01/)
+    {
+        $self->{byteorder} = 'big-endian';
+    }
+    else
+    {
+        $self->{byteorder} = 'little-endian';
+    }
     return $self;
 }
 
@@ -98,18 +110,31 @@ sub readLong
     return $result;
 }
 
-# returns the value of 8 bytes
 sub readDouble
 {
     my ($self)=@_;
     # container to store the reversed bytes
     my $invertedBytes = "";
-    # create a loop with a backwards index
-    for(my $i = 7 ; $i >= 0 ; $i--)
+    if ($self->{byteorder} eq 'little-endian')
     {
+        # create a loop with a backwards index
+        for(my $i = 7 ; $i >= 0 ; $i--)
+        {
             # grab the bytes in reverse order from the backwards index
-			my $nextByte = $self->{raw_data}->[$self->{current_byte}+$i];
-			$invertedBytes .= $nextByte if $nextByte;
+	    my $nextByte = $self->{raw_data}->[$self->{current_byte}+$i];
+	    $nextByte = "0" unless $nextByte;
+            $invertedBytes .= $nextByte; 	    
+        }
+    }
+    else
+    {
+        for(my $i = 0 ; $i < 8 ; $i++)
+        {
+            # grab the bytes in forwards order
+	    my $nextByte = $self->{raw_data}->[$self->{current_byte}+$i];
+	    $nextByte = "0" unless $nextByte;
+            $invertedBytes .= $nextByte; 	    
+        }
     }
     # move the seek head forward 8 bytes
     $self->{current_byte} += 8;
@@ -118,7 +143,6 @@ sub readDouble
     # return the number from the associative array
     return $zz[0];
 }
-
 
 # returns a UTF string
 sub readUTF

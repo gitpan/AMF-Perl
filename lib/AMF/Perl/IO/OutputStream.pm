@@ -13,15 +13,21 @@ package AMF::Perl::IO::OutputStream;
     Class used to convert the perl stuff into binary    
 
 ==head1 CHANGES
+
 =head2 Sun Jun 20 13:32:31 EDT 2004
 =item Added $s="" unless $s in writeUTF to avoid warnings.
+
+=head2 Sun Jul 11 18:45:40 EDT 2004
+
+=item Added the check for endianness.
 
 
 =cut
 
 use strict;
 
-# constructor
+
+#OutputStream constructor
 sub new
 {
     my ($proto)=@_;
@@ -29,8 +35,17 @@ sub new
     my $self = {};
     bless $self, $proto;
     $self->{outBuffer} = "";
+    if (unpack("h*", pack("s", 1)) =~ /01/)
+    {
+        $self->{byteorder} = 'big-endian';
+    }
+    else
+    {
+        $self->{byteorder} = 'little-endian';
+    }
     return $self;
 }
+
 # write a single byte
 sub writeByte
 {
@@ -71,7 +86,7 @@ sub writeLongUTF
     # write the string chars
     $self->{outBuffer} .= $s;
 }
-# write a double
+
 sub writeDouble
 {
     my ($self, $d)=@_;
@@ -84,13 +99,21 @@ sub writeDouble
     # for a double
     my $r = "";
     # reverse the bytes
-    for(my $byte = 7 ; $byte >= 0 ; $byte--)
+    if ($self->{byteorder} eq 'little-endian')
     {
-        $r .= $b[$byte];
+        for(my $byte = 7 ; $byte >= 0 ; $byte--)
+        {
+            $r .= $b[$byte];
+        }
+    }
+    else
+    {
+        $r = $b;
     }
     # add the bytes to the output
-    $self->{outBuffer} .= $r;	
+    $self->{outBuffer} .= $r;
 }
+
 # send the output buffer
 sub flush
 {
